@@ -10,8 +10,10 @@
 
 using namespace std;
 
-int row_size = 2;
-int col_size = 2;
+// TODO: should not harcode grid dimensions
+//int row_size = 2;
+//int col_size = 2;
+
 // stores current location on the grid
 struct Coordinate {
 	int x;
@@ -53,10 +55,8 @@ bool isValid(int row, int col){
 int adjrow[] = {-1,0,0,1}; 
 int adjcol[] = {0,-1,1,0};
 
-// map needs to be a shared var
-// is map size static? if so, okay to hardcode
+
 void BFS(int map[][4], Coordinate dragon, Coordinate knight, unordered_map<Coordinate,Coordinate>& searchTree){
-	//unordered_map<, int> searchTree; // map each vertex to its predecessor and stores the path traversed
 	bool visited[4][4];
 
 	visited[dragon.x][dragon.y] = true;
@@ -73,19 +73,18 @@ void BFS(int map[][4], Coordinate dragon, Coordinate knight, unordered_map<Coord
 		queueNode curr = q.front();
     	Coordinate currCoord = curr.coordinates;
 
-    	// found 
-    	cout << "curr x " << currCoord.x << " curr y " << currCoord.y << endl; 
+    	// cout << "curr x " << currCoord.x << " curr y " << currCoord.y << endl; 
 
     	if(currCoord.x == knight.x && currCoord.y == knight.y){
-    		cout << "found " << endl;
+    		//cout << "found " << endl;
     		return;
     	}
     	q.pop(); // dequeue
     	for(int i =0; i < 4; i++){
-    		//cout << "checking adj cells " <<endl;
     		int row = currCoord.x + adjrow[i];
     		int col = currCoord.y + adjcol[i];
-    		if(!visited[row][col] && isValid(row,col)) // !isBlock
+
+    		if(!visited[row][col] && isValid(row,col) && map[row][col]==1) 
     		{
     			// mark as visited
     			visited[row][col] = true;
@@ -107,32 +106,36 @@ void BFS(int map[][4], Coordinate dragon, Coordinate knight, unordered_map<Coord
 }
 
 int main(){
-	int map[4][4] = {{1,1,1,1},{1,1,1,1},{1,1,1,1},{1,1,1,1}};
+	// sample 4x4 grid for level
+	// '0' is blocked cell, '1' is free cell that players can move to
+	int map[4][4] = {{1,1,1,1},{0,1,0,1},{0,1,1,1},{0,0,0,1}}; 
+
 	Coordinate dragon = {0,0};
-	Coordinate knight = {1,3};
+	Coordinate knight = {2,2};
 
 	unordered_map<Coordinate,Coordinate> searchTree;
 	BFS(map, dragon,knight, searchTree);
-	
-	list<Coordinate> path;
-  if (searchTree.find(knight) == searchTree.end()) {
-    cout << "Vertex " << (knight.x) << "," << (knight.y) << " not reachable from " << (dragon.x) << "," << (dragon.y) << endl;
-  }
-  else {
-    Coordinate stepping = knight;
-    while (stepping != dragon) {
-      path.push_front(stepping);
-      stepping = searchTree[stepping]; // crawl up the search tree one step
-    }
-    path.push_front(dragon);
-    
-    cout << "Path from dragon to knight" << ":";
-    
 
-    for(const Coordinate &coord: path){
-    	cout << coord.x << " " << coord.y << endl;
-    }
-  }
-	
+	list<Coordinate> path; // stores shortest path
+
+	if (searchTree.find(knight) == searchTree.end()) {
+		cout << "Vertex " << (knight.x) << "," << (knight.y) << " not reachable from " << (dragon.x) << "," << (dragon.y) << endl;
+	}
+	else {
+		Coordinate stepping = knight;
+		while (stepping != dragon) {
+		  path.push_front(stepping);
+		  stepping = searchTree[stepping]; // crawl up the search tree one step
+		}
+		path.push_front(dragon);
+
+		cout << "Path from dragon to knight" << ":";
+
+
+		for(const Coordinate &coord: path){
+			cout << coord.x << " " << coord.y << endl;
+		}
+	}
+
 	return 0;
 }
