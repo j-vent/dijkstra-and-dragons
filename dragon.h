@@ -1,30 +1,22 @@
 #ifndef dragon_h
 #define dragon_h
 
-#include "consts_and_types.h"
-class Dragon{
+#include "player.h"
+#include "breadthfirstsearch.h"
+
+class Dragon: public Player
+{	//using Player::Player;
 	public:
-		//enum direction{up,down,left,right,center};
-		Dragon(int x, int y, direction dir){// has location on grid, direction
-			this->x = x;
-			this->y = y;
-			this->dir = dir;
-
-		} 
+		Dragon(int x, int y):Player(x,y){};
 		
-
 		~Dragon(){}; // deconstructor
 
-		//TODO: move to private, use getters and setters
-		int x;
-		int y;
-		direction dir;
+		bool getHasKnight();
 
-		void followKnight(); // use BFS to catch Knight
-
-		bool isCaptured(); // if dragon as caught the knight (same cell on grid)
+		void setHasKnight(bool v);
+	
 	private:
-		 
+		 bool hasKnight; // if dragon as caught the knight (same cell on grid)
 		
 
 };
