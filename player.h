@@ -1,31 +1,32 @@
 #ifndef __PLAYER_H
 #define __PLAYER_H
 #include <Arduino.h>
-#include "consts_and_types.h"
-//extern Coordinate coord;
-struct Coordinate{ 
-	int x;
-	int y;
-};
+
 
 class Player{
 	public:
-		Player(){};
+		Player(int x, int y);
 		~Player(){}; 
+
+		// void setCoordinate(Coordinate coord);
 
 		void move();
 
 		void draw();
+	
+		int getx();
 
-		/** // not sure if getters/setters needed 
-		void getx();
+		void setx(int x);
 
-		void setx();
-		**/ 
+		int gety();
+
+		void sety(int y);
+		
 
 
 	protected: // accessible by child classes
-		Coordinate coord;
+		int x;
+		int y;
 };
 
 #endif
