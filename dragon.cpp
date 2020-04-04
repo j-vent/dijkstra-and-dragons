@@ -1,6 +1,6 @@
 #include "dragon.h"
 /**
-Dragon::Dragon(int x, int y)
+Dragon::Dragon(int x, ints y)
 {
 	this->x = x;
 	this->y = y;
