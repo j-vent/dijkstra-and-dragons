@@ -1,26 +1,63 @@
-#include "dragon.h"
 #include "consts_and_types.h"
-
+// #include "main.h"
 MCUFRIEND_kbv tft;
-
+// extern shared_vars shared;
 
 using namespace std;
 
-//extern shared_vars shared;
+// extern shared_vars shared;
 
 // 0 is knight (player), 1 is dragon (computer)
 int playerMode = 0; 
 
+shared_vars shared;
+
+// in level variables
+// TODO: initialize these in a function
+int keyx = 0;
+int keyy = 0;
+int gatex = 0;
+int gatey = 0;
+int numKeys = 0;
+bool canOpenGate = false;
+
 
 direction dir = center; 
-Dragon dragon(0,0,dir); // initialize dragon 
+//Dragon dragon(0,0); // initialize dragon 
+// shared.dragon = Dragon dragon(0,0);
+//extern Dragon dragon;
+// shared.dragon =  Dragon dragon(0,0);
+// Dragon shared.dragon;
+//shared.test = 4;
+//shared.dragon.setx(0);
+//shared.dragon.sety(0);
+
+
+void knight_turn_message(){
+	tft.setCursor(0,display_height);
+	tft.setTextColor(TFT_WHITE);
+	tft.setTextSize(2);
+	// TODO: Have random generated message from a list of messages 
+	tft.print("Your turn, knight! Best of luck! ");
+
+}
+
+void dragon_turn_message(){
+	tft.setCursor(0,display_height);
+	tft.setTextColor(TFT_RED);
+	tft.setTextSize(2);
+	// TODO: Have random generated message from a list of messages 
+	tft.print("Tis the great dragon's turn! ");
+
+}
 
 void init_map(int level){
 	
 	tft.fillScreen(TFT_BLACK);
 	
 	// maps are represented as such: 0 for block, 1 for path, 2 for knight, 3 for dragon, 4 for gate, 5 for key
-	int level1 [num_row][num_col] = {{2,1,1,0,0,1,1},{1,0,1,1,0,1,0},{1,0,0,1,1,3,0},{1,1,1,0,1,1,1},{1,1,1,1,1,4,0}};
+	//dragon.setx(1);
+	//char ans = dragon.getx();
 	int xstep = display_width/num_col;
 	int ystep = display_height/num_row;
 	uint16_t xstart=0;
@@ -33,8 +70,8 @@ void init_map(int level){
 			for(int j=0; j <num_col; j++){
 				//shared.level_map[i][j]= level1[i][j];
 				//cell = shared.level_map[i][j];
-				level_map[i][j]= level1[i][j];
-				cell = level_map[i][j];
+				shared.level_map[i][j]= level1[i][j];
+				cell = shared.level_map[i][j];
 				switch(cell){
 					case 0: // block
 						colour = tft.color565(0x99, 0x4C, 0x00);
@@ -47,12 +84,9 @@ void init_map(int level){
 						break;
 					case 3: // dragon
 						colour = tft.color565(0xFF, 0x00, 0x00);
-						dragon.x = i;
-						dragon.y = j;
-						dragon.dir = center;
-						//dragon((int)i,(int)j,center);
-						//int dragonx = i;
-						//int dragony = j;
+						shared.dragon.setx(i);
+						shared.dragon.sety(j);
+						
 						break;
 					case 4: // gate
 						colour = tft.color565(0x00, 0x66, 0x33);
@@ -95,6 +129,9 @@ void init_map(int level){
 	// message bar
 	//tft.fillRect(0,display_height,tft_width,tft_height, TFT_BLACK);
 	tft.fillRect(0,display_height,tft_width,24, TFT_BLACK);
+	knight_turn_message();
+	tft.fillRect(0,display_height,tft_width,24, TFT_BLACK);
+	dragon_turn_message();
 
 }
 /** converts coordinates on map into position on LCD display**/
@@ -154,6 +191,44 @@ direction joystick() {
   //if(dir == up){}
 }
 
+
+void gameLoop(){
+	if(playerMode==0){
+		knight_turn_message();
+		playerMode = 1; 
+		/**
+		if(shared.knight.x == keyx && shared.knight.y == keyy){
+			shared.knight.setKey();
+		}
+
+		if(shared.knight.getKey() == numKey)){
+			canOpenGate = true;
+		}
+
+		if(shared.knight.x == gatex && shared.knight.y == gatey){
+			// success level
+			// load new level
+		}
+		**/
+
+	}
+	else if(playerMode==1){
+		dragon_turn_message();
+		// dragon.BFS();
+		// dragon.move();
+		/**
+		if(shared.dragon.x == shared.knight.x && shared.dragon.y == shared.knight.y){
+			shared.dragon.setHasKnight(true);	
+			// fail message 
+			// reload current level
+		}
+
+		**/
+		playerMode = 0;
+
+	}
+}
+
 void moveDragon(){
 	Serial.println("Move dragon ");
 	delay(100);
@@ -161,7 +236,7 @@ void moveDragon(){
 	Serial.println("dragon dir");
 	Serial.println(dragonDir);
 	// hardcoded
-	int dragonx = 272;
+	int dragonx = 340;
 	int dragony = 118;
 
 	int dragonnextx = dragonx;
@@ -207,11 +282,17 @@ void moveDragon(){
 	// TODO: Fix fill (filling the wrong way (not top->bottom left-> right from the top left corner even if
 	// starting coordinates are right 
 	// TODO: Redraw over old spot
+	//tft.fillRect()
+	// manual fill
+	//tft.drawCircle(272,118,2,TFT_CYAN);
+	//tft.fillRect(272,118,68,59,TFT_CYAN);
 	tft.fillRect(dragonnextx,dragonnexty,
 		xstep,ystep,TFT_MAGENTA); // draw new rect tft.color565(0xFF, 0x00, 0x00)
-	//tft.fillRect(dragonx,dragony, 
-		//xstep,ystep, TFT_WHITE); // redraw old block
+	tft.fillRect(dragonx,dragony, 
+		xstep,ystep, TFT_WHITE); // redraw old path block
 }
+
+
 void setup() {
     init();
     pinMode(JOY_SEL, INPUT_PULLUP);
@@ -224,12 +305,20 @@ void setup() {
 
     // clear to yellow
     tft.fillScreen(tft.color565(0xff, 0xff, 0x00));
+   
+	shared.dragon.setx(0);
+	shared.dragon.sety(0);
 
-    //shared.level_map;
+	shared.knight.setx(0);
+	shared.knight.sety(0);
+   	
 }
 
 
 int main(){
+
+	//level_map[num_row][num_col]={{0}};
+	//int level1[num_row][num_col] = {{2,1,1,0,0,1,1},{1,0,1,1,0,1,0},{1,0,0,1,1,3,0},{1,1,1,0,1,1,1},{1,1,1,1,1,4,0}};
 	setup();
 	int level = 1;
 	
