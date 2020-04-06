@@ -1,13 +1,9 @@
 #include "consts_and_types.h"
-// #include "main.h"
+
 MCUFRIEND_kbv tft;
-// extern shared_vars shared;
 
 using namespace std;
 
-// extern shared_vars shared;
-
-// 0 is knight (player), 1 is dragon (computer)
 int playerMode = 0; 
 
 shared_vars shared;
@@ -21,17 +17,9 @@ int gatey = 0;
 int numKeys = 0;
 bool canOpenGate = false;
 
-
+bool running = true;
 direction dir = center; 
-//Dragon dragon(0,0); // initialize dragon 
-// shared.dragon = Dragon dragon(0,0);
-//extern Dragon dragon;
-// shared.dragon =  Dragon dragon(0,0);
-// Dragon shared.dragon;
-//shared.test = 4;
-//shared.dragon.setx(0);
-//shared.dragon.sety(0);
-
+direction olddir = center;
 
 void knight_turn_message(){
 	tft.setCursor(0,display_height);
@@ -50,6 +38,17 @@ void dragon_turn_message(){
 	tft.print("Tis the great dragon's turn! ");
 
 }
+void lost_screen(){
+	tft.setCursor(0,display_height/2);
+	tft.setTextColor(TFT_RED);
+	tft.setTextSize(4);
+	tft.setTextWrap(true);
+	tft.fillScreen(TFT_BLACK);
+	tft.print("The knight has been captured!");
+	// reload prev level
+
+}
+
 
 void init_map(int level){
 	
@@ -68,19 +67,20 @@ void init_map(int level){
 	int cell;
 	for(int i=0; i <num_row; i++){
 			for(int j=0; j <num_col; j++){
-				//shared.level_map[i][j]= level1[i][j];
-				//cell = shared.level_map[i][j];
 				shared.level_map[i][j]= level1[i][j];
 				cell = shared.level_map[i][j];
 				switch(cell){
 					case 0: // block
-						colour = tft.color565(0x99, 0x4C, 0x00);
+						//colour = tft.color565(0x99, 0x4C, 0x00);
+						colour = TFT_BLACK;
 						break;
 					case 1: // path
 						colour = TFT_WHITE;
 						break;
 					case 2: // knight
 						colour = tft.color565(0xA0, 0xA0, 0xA0);
+						shared.knight.setx(i);
+						shared.knight.sety(j);
 						break;
 					case 3: // dragon
 						colour = tft.color565(0xFF, 0x00, 0x00);
@@ -90,29 +90,17 @@ void init_map(int level){
 						break;
 					case 4: // gate
 						colour = tft.color565(0x00, 0x66, 0x33);
+						gatex = i;
+						gatey = j;
 						break;
 					case 5: // key
 						colour = tft.color565(0xE5, 0xD8, 0x22);
+						keyx = i;
+						keyy = j;
 						break;
 				}
 
 				xnext = xstart+display_width/num_col;
-				
-				/**
-				Serial.println("cell ");
-				Serial.println(level_map[i][j]);
-				Serial.print(" xstart ");
-				Serial.println(xstart);
-				Serial.print(" ystart ");
-				Serial.println(ystart);
-				/**
-				Serial.print(" xnext ");
-				Serial.println(xnext);
-				Serial.print(" ynext ");
-				Serial.println(ynext);
-				**/
-
-				//tft.fillRect(xstart,ystart,xnext,ynext,colour);
 				tft.fillRect(xstart,ystart,xstep,ystep,colour);
 				xstart=xnext;
 				
@@ -126,170 +114,264 @@ void init_map(int level){
 				
 			}	
 	}
-	// message bar
-	//tft.fillRect(0,display_height,tft_width,tft_height, TFT_BLACK);
-	tft.fillRect(0,display_height,tft_width,24, TFT_BLACK);
-	knight_turn_message();
-	tft.fillRect(0,display_height,tft_width,24, TFT_BLACK);
-	dragon_turn_message();
-
 }
-/** converts coordinates on map into position on LCD display**/
 /**
-void moveDragon(){
-	// top left corner of dragon cell 
-} 
+* bool levelInit: true if a new level is being initialized
 **/
+void drawMap(bool levelInit) {
+    int cursorx=0;
+    int cursory=0;
+    int cell;
+    uint16_t colour;
 
-// TODO: Make so that you don't have to hold the position for a long time
-direction joystick() {
-  delay(100);
-  int xVal = analogRead(JOY_HORIZ);
-  int yVal = analogRead(JOY_VERT);
-  int buttonVal = digitalRead(JOY_SEL);
 
-  bool stickPushed = false;
-  //direction dir = 0;
+    for (int i=0; i<5; i++) {
+        cursory=0;
+        for (int j=0; j<7; j++) {
+        	if(levelInit){
+        		shared.level_map[i][j]= level1[i][j]; // load level map into shared map 
+        		// Serial.println(shared.level_map[i][j]);
+        	}
+        	
+            cell = shared.level_map[i][j];
+            //Serial.print(cell);
+            
+            switch(cell){
+					case 0: // block
+						//colour = tft.color565(0x99, 0x4C, 0x00);
+						colour = TFT_BLACK;
+						break;
+					case 1: // path
+						colour = TFT_WHITE;
+						break;
+					case 2: // knight
+						//colour = tft.color565(0xA0, 0xA0, 0xA0);
+						colour = TFT_BLUE;
+						shared.knight.setx(i);
+						shared.knight.sety(j);
+						break;
+					case 3: // dragon
+						//colour = tft.color565(0xFF, 0x00, 0x00);
+						colour = TFT_RED;
+						shared.dragon.setx(i);
+						shared.dragon.sety(j);
+						
+						break;
+					case 4: // gate
+						colour = tft.color565(0x00, 0x66, 0x33);
+						gatex = i;
+						gatey = j;
+						break;
+					case 5: // key
+						colour = tft.color565(0xE5, 0xD8, 0x22);
+						keyx = i;
+						keyy = j;
+						break;
+			}
+			tft.fillRect(cursory,cursorx,64,64,colour);
+			/**
+			Serial.print(" ");
+            Serial.print(i);
+            Serial.print(" ");
+            Serial.println(j);
+            **/
 
-  if (xVal > JOY_CENTRE + JOY_DEADZONE) {
-  	Serial.println("L");
-   	dir = left;
-    stickPushed = true;
-  }
-  else if (xVal < JOY_CENTRE - JOY_DEADZONE) {
-  	Serial.println("R");
-    dir = right;
-    stickPushed = true;
-  }
+            cursory+=64;
 
-  if (yVal < JOY_CENTRE - JOY_DEADZONE) {
-  	Serial.println("U");
-    dir = up;
-    stickPushed = true;
-  }
-  else if (yVal > JOY_CENTRE + JOY_DEADZONE) {
-  	Serial.println("D");
-    dir = down;
-    stickPushed = true;
-  }
+        }
+        cursorx+=64;
+    }
 
-  /**  if (abs(xVal - JOY_CENTRE) <= JOY_DEADZONE &&
-      abs(yVal - JOY_CENTRE) <= JOY_DEADZONE) {
-    Serial.print("centre ");
-    }*/
-  if (!stickPushed) {
-    //Serial.print("centre ");
-  }
-
-  if (buttonVal == LOW) {
-    //Serial.print("pushed ");
-  }
-  Serial.println("dir");
-  Serial.println(dir);
-  return dir;
-
-  //if(dir == up){}
+    //tft.fillRect(knightx*64,knighty*64,64,64,TFT_BLUE);
+    // tft.fillRect(dragonx*64,dragony*64,64,64,TFT_RED);
 }
 
+void fillPreview(int level[5][7], direction olddir, int knightx, int knighty) {
 
-void gameLoop(){
+
+
+    if (olddir == left  && level[knighty][knightx-1]==0) {
+        tft.fillRect((knightx-1)*64,knighty*64,64,64,TFT_BLACK);
+    }
+    else if (olddir == left  && level[knighty][knightx-1]==1) {
+        tft.fillRect((knightx-1)*64,knighty*64,64,64,TFT_WHITE);
+    }
+    else if (olddir == right  && level[knighty][knightx+1]==1) {
+        tft.fillRect((knightx+1)*64,knighty*64,64,64,TFT_WHITE);
+    }
+    else if (olddir == right  && level[knighty][knightx+1]==0) {
+        tft.fillRect((knightx+1)*64,knighty*64,64,64,TFT_BLACK);
+    }
+    else if (olddir == up  && level[knighty-1][knightx]==1) {
+        tft.fillRect(knightx*64,(knighty-1)*64,64,64,TFT_WHITE);
+    }
+    else if (olddir == up  && level[knighty-1][knightx]==0) {
+        tft.fillRect(knightx*64,(knighty-1)*64,64,64,TFT_BLACK);
+    }
+    else if (olddir == down  && level[knighty+1][knightx]==1) {
+        tft.fillRect(knightx*64,(knighty+1)*64,64,64,TFT_WHITE);
+    }
+    else if (olddir == down  && level[knighty+1][knightx]==0) {
+        tft.fillRect(knightx*64,(knighty+1)*64,64,64,TFT_BLACK);
+    }
+}
+
+void pushBlock(int level[5][7], direction dir, int playerx, int playery) {
+    Serial.print("Pushblock ");
+    Serial.print(playerx);
+    Serial.println(playery);
+    if (dir == left) {
+        level[playerx][playery-1] = 0;
+        level[playerx][playery] = 1;
+    }
+    else if (dir == right) {
+        level[playerx][playery+1] = 0;
+        level[playerx][playery] = 1;
+    }
+    else if (dir == up) {
+        level[playerx-1][playery] = 0;
+        level[playerx][playery] = 1;
+    }
+    else if (dir == down) {
+        level[playerx+1][playery] = 0;
+        level[playerx][playery] = 1;
+    }
+}
+
+void knightTurn(int level[5][7], int& knightx, int& knighty, int dragonx, int dragony) {
+
+    bool stickPushed = false;
+
+    
+
+    while(!stickPushed || dir == center) {
+        int xVal = analogRead(JOY_HORIZ);
+          int yVal = analogRead(JOY_VERT);
+          int buttonVal = digitalRead(JOY_SEL);
+
+          if (xVal > JOY_CENTRE + JOY_DEADZONE) {
+
+              if(knightx > 0 && level[knighty][knightx-1]==1) {
+                  tft.fillRect((knightx-1)*64,knighty*64,64,64,TFT_YELLOW);
+                  olddir = dir;
+                   dir = left;
+              }
+              else if (knightx > 1 && level[knighty][knightx-1]==0 && level[knighty][knightx-2]==1) {
+                  tft.fillRect((knightx-1)*64,knighty*64,64,64,TFT_GREEN);
+                  olddir = dir;
+                   dir = left;
+              }
+          }
+          else if (xVal < JOY_CENTRE - JOY_DEADZONE) {
+
+              if(knightx < 6 && level[knighty][knightx+1]==1) {
+                  tft.fillRect((knightx+1)*64,knighty*64,64,64,TFT_YELLOW);
+                  olddir = dir;
+                dir = right;
+              }
+              
+              else if (knightx < 5 && level[knighty][knightx+1]==0 && level[knighty][knightx+2]==1) {
+                  tft.fillRect((knightx+1)*64,knighty*64,64,64,TFT_GREEN);
+                  olddir = dir;
+                dir = right;
+              }
+          }
+          else if (yVal < JOY_CENTRE - JOY_DEADZONE) {
+
+              if(knighty > 0 && level[knighty-1][knightx]==1) {
+                  tft.fillRect(knightx*64,(knighty-1)*64,64,64,TFT_YELLOW);
+                  olddir = dir;
+                dir = up;
+              }
+              else if (knighty > 1 && level[knighty-1][knightx]==0 && level[knighty-2][knightx]==1) {
+              	 tft.fillRect(knightx*64,(knighty-1)*64,64,64,TFT_GREEN);
+                  olddir = dir;
+                dir = up;
+              }    
+          }
+          else if (yVal > JOY_CENTRE + JOY_DEADZONE) {
+
+              if(knighty < 4 && level[knighty+1][knightx]==1) {
+                  tft.fillRect(knightx*64,(knighty+1)*64,64,64,TFT_YELLOW);
+                  olddir = dir;
+                dir = down;
+              }
+              else if (knighty < 3 && level[knighty+1][knightx]==0 && level[knighty+2][knightx]==1) {
+                  tft.fillRect(knightx*64,(knighty+1)*64,64,64,TFT_GREEN);
+                  olddir = dir;
+                dir = down;
+              }
+          }
+
+          
+          if (olddir!=dir) {
+               fillPreview(level, olddir, knightx, knighty);
+           }
+
+          if (buttonVal==0 && (yVal <= JOY_CENTRE + JOY_DEADZONE) && (yVal >= JOY_CENTRE - JOY_DEADZONE) && (xVal >= JOY_CENTRE - JOY_DEADZONE) && (xVal <= JOY_CENTRE + JOY_DEADZONE)){
+              stickPushed = true;
+          }
+    }
+
+    if (dir==left) {
+        knightx=knightx-1;
+    }
+    else if (dir==right) {
+        knightx=knightx+1;
+    }
+    else if (dir==up) {
+        knighty=knighty-1;
+    }
+    else if (dir == down) {
+        knighty= knighty+1;
+    }
+
+    if (level[knighty][knightx]==0) {
+        pushBlock(level, dir, knightx, knighty);
+    }
+
+    olddir = center;
+    dir = center;
+
+}
+
+bool gameLoop(){
 	if(playerMode==0){
-		knight_turn_message();
-		playerMode = 1; 
-		/**
-		if(shared.knight.x == keyx && shared.knight.y == keyy){
-			shared.knight.setKey();
-		}
-
-		if(shared.knight.getKey() == numKey)){
-			canOpenGate = true;
-		}
-
-		if(shared.knight.x == gatex && shared.knight.y == gatey){
-			// success level
-			// load new level
-		}
-		**/
+		tft.fillRect(0,display_height,tft_width,24, TFT_BLACK);
+		// knight_turn_message();
+		playerMode = 1;
 
 	}
 	else if(playerMode==1){
-		dragon_turn_message();
-		// dragon.BFS();
-		// dragon.move();
-		/**
-		if(shared.dragon.x == shared.knight.x && shared.dragon.y == shared.knight.y){
-			shared.dragon.setHasKnight(true);	
-			// fail message 
-			// reload current level
+		Serial.println("dragon turn");
+
+		Coordinate dragdir = {shared.dragon.getx(), shared.dragon.gety()};
+		Coordinate knightdir = {shared.knight.getx(), shared.knight.gety()};
+		
+		if(shared.knight.getx() == shared.dragon.getx() && shared.knight.gety() == shared.dragon.gety()){
+			Serial.println("caught");
+			lost_screen();
+			running = false;
+			
 		}
+		Coordinate nextmove = BFS(shared.level_map,dragdir,knightdir);
+		Serial.print("move x ");
+		Serial.println(nextmove.x);
+		Serial.print("move y ");
+		Serial.println(nextmove.y);
+		if(nextmove.x == -1 || nextmove.y ==-1){
+			Serial.println("invalid move");
+		}
+		
+		else{
+			shared.level_map[dragdir.x][dragdir.y] = 1;
+			shared.level_map[nextmove.x][nextmove.y] = 3; 
+			drawMap(false);
 
-		**/
-		playerMode = 0;
-
+		}
+		delay(50);
 	}
-}
-
-void moveDragon(){
-	Serial.println("Move dragon ");
-	delay(100);
-	direction dragonDir = joystick();
-	Serial.println("dragon dir");
-	Serial.println(dragonDir);
-	// hardcoded
-	int dragonx = 340;
-	int dragony = 118;
-
-	int dragonnextx = dragonx;
-	int dragonnexty = dragony;
-	// TO DO: make constraints
-	int xstep = display_width/num_col;
-	int ystep = display_height/num_row;
-	switch(dragonDir){
-		case up:
-			Serial.println("up");	
-			dragonnextx = dragonx;
-			dragonnexty = dragony-ystep;
-			//ystep = ystep *-1;
-			break;
-		case down:
-			Serial.println("down");
-			dragonnextx = dragonx;
-			dragonnexty = dragony+ display_height/num_row;
-			break;
-		case right:
-			Serial.println("right");
-			dragonnexty = dragony;
-			dragonnextx = dragonx+ display_width/num_col;
-			break;
-		case left:
-			Serial.println("left");
-			dragonnexty = dragony;
-			dragonnextx = dragonx- display_width/num_col;
-			//xstep = xstep*-1;
-			break;
-	}
-	Serial.println("nextx ");
-	Serial.println(dragonnextx);
-	Serial.println("nexty");
-	Serial.println(dragonnexty);
-
-	Serial.println("xstep");
-	Serial.println(xstep);
-	Serial.println("ystep");
-	Serial.println(ystep);
-	// TODO: update dragon's position in grid and change its old position to path 
-
-	// TODO: Fix fill (filling the wrong way (not top->bottom left-> right from the top left corner even if
-	// starting coordinates are right 
-	// TODO: Redraw over old spot
-	//tft.fillRect()
-	// manual fill
-	//tft.drawCircle(272,118,2,TFT_CYAN);
-	//tft.fillRect(272,118,68,59,TFT_CYAN);
-	tft.fillRect(dragonnextx,dragonnexty,
-		xstep,ystep,TFT_MAGENTA); // draw new rect tft.color565(0xFF, 0x00, 0x00)
-	tft.fillRect(dragonx,dragony, 
-		xstep,ystep, TFT_WHITE); // redraw old path block
+	return running;
 }
 
 
@@ -311,19 +393,21 @@ void setup() {
 
 	shared.knight.setx(0);
 	shared.knight.sety(0);
+
+	//shared.level_map[5][7]={{0}};
    	
 }
 
 
 int main(){
-
-	//level_map[num_row][num_col]={{0}};
-	//int level1[num_row][num_col] = {{2,1,1,0,0,1,1},{1,0,1,1,0,1,0},{1,0,0,1,1,3,0},{1,1,1,0,1,1,1},{1,1,1,1,1,4,0}};
 	setup();
-	int level = 1;
-	
-	init_map(level);
-	moveDragon();
+	drawMap(true);
+	playerMode = 1;
+	while(running){
+		gameLoop();
+		Serial.println("looping");
+	};
+	Serial.println("done");
 	Serial.end();
 	return 0;
 }
