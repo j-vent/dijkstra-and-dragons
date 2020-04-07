@@ -7,9 +7,11 @@ using namespace std;
 int playerMode = 0; 
 
 shared_vars shared;
+// levels game_level;
 
 // in level variables
 // TODO: initialize these in a function
+int level = 1;
 int keyx = 0;
 int keyy = 0;
 int gatex = 0;
@@ -38,87 +40,11 @@ void dragon_turn_message(){
 	tft.print("Tis the great dragon's turn! ");
 
 }
-void lost_screen(){
-	tft.setCursor(0,display_height/2);
-	tft.setTextColor(TFT_RED);
-	tft.setTextSize(4);
-	tft.setTextWrap(true);
-	tft.fillScreen(TFT_BLACK);
-	tft.print("The knight has been captured!");
-	// reload prev level
 
-}
-
-
-void init_map(int level){
-	
-	tft.fillScreen(TFT_BLACK);
-	
-	// maps are represented as such: 0 for block, 1 for path, 2 for knight, 3 for dragon, 4 for gate, 5 for key
-	//dragon.setx(1);
-	//char ans = dragon.getx();
-	int xstep = display_width/num_col;
-	int ystep = display_height/num_row;
-	uint16_t xstart=0;
-	uint16_t ystart = 0;
-	uint16_t xnext = 0; 
-	uint16_t ynext = display_height/num_row;
-	uint16_t colour;
-	int cell;
-	for(int i=0; i <num_row; i++){
-			for(int j=0; j <num_col; j++){
-				shared.level_map[i][j]= level1[i][j];
-				cell = shared.level_map[i][j];
-				switch(cell){
-					case 0: // block
-						//colour = tft.color565(0x99, 0x4C, 0x00);
-						colour = TFT_BLACK;
-						break;
-					case 1: // path
-						colour = TFT_WHITE;
-						break;
-					case 2: // knight
-						colour = tft.color565(0xA0, 0xA0, 0xA0);
-						shared.knight.setx(i);
-						shared.knight.sety(j);
-						break;
-					case 3: // dragon
-						colour = tft.color565(0xFF, 0x00, 0x00);
-						shared.dragon.setx(i);
-						shared.dragon.sety(j);
-						
-						break;
-					case 4: // gate
-						colour = tft.color565(0x00, 0x66, 0x33);
-						gatex = i;
-						gatey = j;
-						break;
-					case 5: // key
-						colour = tft.color565(0xE5, 0xD8, 0x22);
-						keyx = i;
-						keyy = j;
-						break;
-				}
-
-				xnext = xstart+display_width/num_col;
-				tft.fillRect(xstart,ystart,xstep,ystep,colour);
-				xstart=xnext;
-				
-				if(xstart + xstep > display_width){ // new row
-					Serial.println("new row ");
-					xstart = 0; 
-					ystart = ynext;
-					ynext = ystart+display_height/num_row;
-					
-				}
-				
-			}	
-	}
-}
 /**
 * bool levelInit: true if a new level is being initialized
 **/
-void drawMap(bool levelInit) {
+void drawMap(bool levelInit, int level) {
     int cursorx=0;
     int cursory=0;
     int cell;
@@ -129,10 +55,22 @@ void drawMap(bool levelInit) {
         cursory=0;
         for (int j=0; j<7; j++) {
         	if(levelInit){
-        		shared.level_map[i][j]= level1[i][j]; // load level map into shared map 
-        		// Serial.println(shared.level_map[i][j]);
+        		Serial.print("level");
+        		Serial.println(level);
+        		switch(level){ // // load level map into shared map
+
+        			case 1:
+        				Serial.println("case 1");
+        				shared.level_map[i][j]= level1[i][j]; 
+        				break;
+
+        			case 2:
+        				Serial.println("case 2 ");
+        				shared.level_map[i][j]= level2[i][j]; 
+        				break;
+        		}	
+        		
         	}
-        	
             cell = shared.level_map[i][j];
             //Serial.print(cell);
             
@@ -185,6 +123,7 @@ void drawMap(bool levelInit) {
     //tft.fillRect(knightx*64,knighty*64,64,64,TFT_BLUE);
     // tft.fillRect(dragonx*64,dragony*64,64,64,TFT_RED);
 }
+
 
 void fillPreview(int level[5][7], direction olddir, int knightx, int knighty) {
 
@@ -334,7 +273,7 @@ void knightTurn(int level[5][7], int& knightx, int& knighty, int dragonx, int dr
     dir = center;
 
 }
-
+void lost_screen(); 
 bool gameLoop(){
 	if(playerMode==0){
 		tft.fillRect(0,display_height,tft_width,24, TFT_BLACK);
@@ -355,10 +294,10 @@ bool gameLoop(){
 			
 		}
 		Coordinate nextmove = BFS(shared.level_map,dragdir,knightdir);
-		Serial.print("move x ");
-		Serial.println(nextmove.x);
-		Serial.print("move y ");
-		Serial.println(nextmove.y);
+		//Serial.print("move x ");
+		//Serial.println(nextmove.x);
+		//Serial.print("move y ");
+		//Serial.println(nextmove.y);
 		if(nextmove.x == -1 || nextmove.y ==-1){
 			Serial.println("invalid move");
 		}
@@ -366,15 +305,30 @@ bool gameLoop(){
 		else{
 			shared.level_map[dragdir.x][dragdir.y] = 1;
 			shared.level_map[nextmove.x][nextmove.y] = 3; 
-			drawMap(false);
+			drawMap(false, level); 
 
 		}
 		delay(50);
+		playerMode = 0;
 	}
 	return running;
 }
 
+void lost_screen(){
+	tft.setCursor(0,display_height/2);
+	tft.setTextColor(TFT_RED);
+	tft.setTextSize(4);
+	tft.setTextWrap(true);
+	tft.fillScreen(TFT_BLACK);
+	tft.print("The knight has been captured!");
+	delay(50);
+	drawMap(true,level+1);// remove+1
+	while(true){
+		gameLoop();
+	}
+	// reload prev level
 
+}
 void setup() {
     init();
     pinMode(JOY_SEL, INPUT_PULLUP);
@@ -401,7 +355,7 @@ void setup() {
 
 int main(){
 	setup();
-	drawMap(true);
+	drawMap(true, 1);
 	playerMode = 1;
 	while(running){
 		gameLoop();
